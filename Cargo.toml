@@ -1,0 +1,20 @@
+[package]
+name = "uni_log"
+version = "0.1.0"
+edition = "2018"
+authors = ["RustyCrabs100 rusty.crabs100@gmail.com"]
+description = ""
+license = "MIT"
+repository = ""
+readme = ""
+keywords = ["logging", "minimal", "error"]
+categories = []
+
+[dependencies]
+
+
+[features]
+default = ["std"]
+no_std = []
+std = []
+# async = []
