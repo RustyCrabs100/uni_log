@@ -1,6 +1,7 @@
 // #[cfg(feature = "std")]
 pub mod std_logger {
     use std::sync::Mutex;
+    #[repr(i32)]
     #[derive(Clone, PartialEq, Debug, Default)]
     pub enum LoggingType {
         Error = -1,
@@ -43,6 +44,7 @@ pub mod std_logger {
             logger_guard.info.push($info);
             logger_guard.info_id.push(0);
             logger_guard.info_type.push(LoggingType::Mark);
+            return;
         };
     }
     #[macro_export]
@@ -52,6 +54,7 @@ pub mod std_logger {
             logger_guard.info.push($info);
             logger_guard.info_id.push($info_id);
             logger_guard.info_type.push(LoggingType::Info);
+            return;
         };
     }
     #[macro_export]
@@ -61,6 +64,7 @@ pub mod std_logger {
             logger_guard.info.push($info);
             logger_guard.info_id.push($info_id);
             logger_guard.info_type.push(LoggingType::Warning);
+            return;
         };
     }
     #[macro_export]
@@ -70,6 +74,7 @@ pub mod std_logger {
             logger_guard.info.push($info);
             logger_guard.info_id.push($info_id);
             logger_guard.info_type.push(LoggingType::Error);
+            return;
         };
     }
 
@@ -77,29 +82,41 @@ pub mod std_logger {
     macro_rules! parse_log {
         () => {
             let logger_guard = LOGGER.lock().unwrap();
-            let mut last_error = None;
-            for i in logger_guard.info_id {
-                match logger_guard.info_type[i] {
-                    LoggingType::Mark => println!("[MARK]: Mark: {}", logger_guard.info[i]),
-                    LoggingType::Info => println!("[INFO]: Info: {}; Info ID: {}",
-                        logger_guard.info[i], logger_guard.info_id[i]
-                    ),
-                    LoggingType::Warning => eprintln!("[WARNING]: Warning: {}; Warning ID: {}",
-                        logger_guard.info[i], logger_guard.info_id[i]
-                    ),
-                    LoggingType::Error => {
-                        last_error = Some(i);
-                        eprintln!("[ERROR]: Error: {}; Error ID: {}",
-                            logger_guard.info[i], logger_guard.info_id[i]
+            let mut counter: usize = 0;
+            let mut last_error: Option<usize> = None;
+            for i in logger_guard.info_id.clone() {
+                match logger_guard.info_type[counter] {
+                    LoggingType::Mark =>  {
+                        println!("[MARK]: Mark: {}", logger_guard.info[counter]);
+                        counter += 1; 
+                    }
+                    LoggingType::Info => {
+                        println!("[INFO]: Info: {}; Info ID: {}",
+                            logger_guard.info[counter], logger_guard.info_id[counter]
                         );
+                        counter+=1;
+                    },
+                    LoggingType::Warning => {
+                        eprintln!("[WARNING]: Warning: {}; Warning ID: {}",
+                            logger_guard.info[counter], logger_guard.info_id[counter]
+                        );
+                        counter+=1;
+                    },
+                    LoggingType::Error => {
+                        last_error = Some(i as usize);
+                        eprintln!("[ERROR]: Error: {}; Error ID: {}",
+                            logger_guard.info[counter], logger_guard.info_id[counter]
+                        );
+                        counter+=1;
                     }
                 }
             } 
             if let Some(idx) = last_error {
                 panic!("[ERROR]: Final Error: Error: {}; Error ID: {}",
-                    logger_guard.info[i], logger_guard.info_id[i]
+                    logger_guard.info[idx], logger_guard.info_id[idx]
                 )
             }
+            return;
         };
     }
 
