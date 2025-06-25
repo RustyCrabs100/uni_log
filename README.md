@@ -2,10 +2,7 @@
 An ergonomic, minimalistic logger designed for what you need most! 
 
 ## NOTE
-This crate is currently broken, and is not currently posted to [crates.io](https://crates.io/)
-If this message is removed, whatever was stated in this message will be incorrect.
-
-This is the newest, updated version of [mini_log](https://crates.io/crates/mini_log)
+This is the newest, updated version of [mini_log](https://crates.io/crates/mini_log) \
 mini_log has since been deprecated, and will no longer be updated. 
 
 ## How to use
