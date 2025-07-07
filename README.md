@@ -5,6 +5,8 @@ An ergonomic, minimalistic logger designed for what you need most!
 This is the newest, updated version of [mini_log](https://crates.io/crates/mini_log) \
 mini_log has since been deprecated, and will no longer be updated. 
 
+Currently, only the basic feature has been completed, with the async features being the last. 
+
 ## How to use
 1. First, include uni_log in your Cargo.toml
 ```

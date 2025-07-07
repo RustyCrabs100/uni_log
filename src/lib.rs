@@ -1,125 +1,202 @@
-use crate::std_logger::*;
-// #[cfg(feature = "std")]
-pub mod std_logger {
-    use std::sync::Mutex;
+// ! uni_log, a logger for all your needs!
+// !
+// ! The way this crate works is by storing all your logging attempts, only logging once the parse_log!() macro has been called.
+// ! There are multiple methods of which you can choose. Here are said methods:
+// ! Basic - Bare Minimum Logging.
+// ! Async - Same thing as Basic, but this time Async.
+// ! Full - A logging implementation with timing, settings, file writing, colored messages, etc.
+// ! Full Async - Same thing as Full, but this time Async.
+// ! no_std - Same thing as Basic, but with minimal memory footprint, as well as a much smaller runtime cost.
+
+/// The main container of all the logging methods
+pub mod log {
+    /// An enum of all the different logging types.
+    /// All types have their own i32 variants
     #[repr(i32)]
-    #[derive(Clone, PartialEq, Debug, Default)]
+    #[derive(Default, PartialEq, Clone, Debug)]
     pub enum LoggingType {
+        /// The Error logging type, used for an UNRECOVERABLE error in your program.
+        /// This type is equal to -1
         Error = -1,
-        Mark = 0,
+        /// The Warning logging type, used for when a potentially hazardous event happens in your program.
+        /// This type is equal to 0
+        Warning = 0,
+        /// The Info logging type, the default type, used for basic logging of an event in your program.
+        /// This type is equal to 1
         #[default]
         Info = 1,
-        Warning = 2
+        /// The Mark logging type, for logging when an event happens in your program.
+        /// This type is equal to 2
+        Mark = 2,
     }
 
-    #[derive(Clone, PartialEq, Debug, Default)]
-    pub struct Log {
-        pub info: Vec<String>,
-        pub info_id: Vec<i32>,
-        pub info_type: Vec<LoggingType>,
-    }
+    /// A logging implementation including only the bare minimum
+    /// This implementation includes:
+    /// Logging Errors, Warnings, basic messages, or simply when an event happens.
+    #[cfg(feature = "basic")]
+    pub mod basic_log {
+        use std::sync::Mutex;
 
-    impl Log {
-        pub const fn new() -> Self {
-            Self {
-                info: vec![],
-                info_id: vec![],
-                info_type: vec![],
+        /// The struct containing the basic logger.
+        #[derive(Default, PartialEq, Clone, Debug)]
+        pub struct Logger {
+            /// The data of a log
+            pub info: String,
+            /// The id of a log
+            pub id: i32,
+            /// What kind of log is this?
+            /// See LoggingType
+            pub logging_type: crate::log::LoggingType,
+        }
+
+        impl Logger {
+            pub const fn new(info: String, id: i32, logging_type: crate::log::LoggingType) -> Self {
+                Self {
+                    info,
+                    id,
+                    logging_type,
+                }
             }
+        }
+
+        /// The static variable containing a Mutex of a Vector of Logger's
+        pub static LOGGER_REGISTRY: Mutex<Vec<Logger>> = Mutex::new(Vec::new());
+
+        #[macro_export]
+        macro_rules! error {
+            ($name:expr, $id:expr) => {
+                let mut logger_registry = crate::log::basic_log::LOGGER_REGISTRY.lock().unwrap();
+                logger_registry.push(crate::log::basic_log::Logger::new(
+                    $name,
+                    $id,
+                    crate::log::LoggingType::Error,
+                ));
+            };
+        }
+
+        #[macro_export]
+        macro_rules! warn {
+            ($name:expr, $id:expr) => {
+                let mut logger_registry = crate::log::basic_log::LOGGER_REGISTRY.lock().unwrap();
+                logger_registry.push(crate::log::basic_log::Logger::new(
+                    $name,
+                    $id,
+                    crate::log::LoggingType::Warning,
+                ));
+            };
+        }
+
+        #[macro_export]
+        macro_rules! info {
+            ($name:expr, $id:expr) => {
+                let mut logger_registry = crate::log::basic_log::LOGGER_REGISTRY.lock().unwrap();
+                logger_registry.push(crate::log::basic_log::Logger::new(
+                    $name,
+                    $id,
+                    crate::log::LoggingType::Info,
+                ));
+            };
+        }
+
+        #[macro_export]
+        macro_rules! mark {
+            ($name:expr, $id:expr) => {
+                let mut logger_registry = crate::log::basic_log::LOGGER_REGISTRY.lock().unwrap();
+                logger_registry.push(crate::log::basic_log::Logger::new(
+                    $name,
+                    $id,
+                    crate::log::LoggingType::Mark,
+                ));
+            };
+        }
+        #[macro_export]
+        macro_rules! parse_log {
+            () => {
+                use crate::log::LoggingType as LT;
+                let mut last_error: Option<&crate::log::basic_log::Logger> = None;
+
+                let binding = crate::log::basic_log::LOGGER_REGISTRY
+                    .lock()
+                    .unwrap()
+                    .clone();
+
+                for items in &*binding {
+                    match items.logging_type {
+                        LT::Mark => println!("[MARK]: Info: {}; ID: {}", items.info, items.id),
+                        LT::Info => println!("[INFO]: Info: {}; ID: {}", items.info, items.id),
+                        LT::Warning => {
+                            eprintln!("[WARNING]: Info: {}; ID: {}", items.info, items.id)
+                        }
+                        LT::Error => {
+                            last_error = Some(items);
+                            eprintln!("[ERROR]: Info: {}; ID: {}", items.info, items.id);
+                        }
+                    }
+                }
+
+                match last_error {
+                    Some(logger) => {
+                        panic!("[FINAL ERROR]: Info: {}; ID: {}", logger.info, logger.id);
+                    }
+                    None => {
+                        println!("Logging Attempt Completed!");
+                    }
+                }
+            };
         }
     }
 
-    pub static LOGGER: Mutex<Log> = Mutex::new(Log::new());
+    /// A logging implementation full of features, such as
+    /// - Timing of calls
+    /// - File writing
+    /// - Log settings
+    /// and more!
+    /// NOTE:
+    /// This implementation is not async.
+    /// If your looking for an async logger, look at async_log
+    /// If you need a feature-full async logger, look at full_async_log
+    #[cfg(feature = "full")]
+    pub mod full_log {}
 
-    #[macro_export]
-    macro_rules! mark {
-        ($info:expr) => {{
-            
-            let mut logger_guard = LOGGER.lock().unwrap();
-            logger_guard.info.push($info);
-            logger_guard.info_id.push(0);
-            logger_guard.info_type.push(LoggingType::Mark);
-        }};
-    }
-    #[macro_export]
-    macro_rules! info {
-        ($info:expr, $info_id:expr) => {{
-            let mut logger_guard = LOGGER.lock().unwrap();
-            logger_guard.info.push($info);
-            logger_guard.info_id.push($info_id);
-            logger_guard.info_type.push(LoggingType::Info);
-        }};
-    }
-    #[macro_export]
-    macro_rules! warning {
-        ($info:expr, $info_id:expr) => {{
-            let mut logger_guard = LOGGER.lock().unwrap();
-            logger_guard.info.push($info);
-            logger_guard.info_id.push($info_id);
-            logger_guard.info_type.push(LoggingType::Warning);
-        }};
-    }
-    #[macro_export]
-    macro_rules! error {
-        ($info:expr, $info_id:expr) => {{
-            let mut logger_guard = LOGGER.lock().unwrap();
-            logger_guard.info.push($info);
-            logger_guard.info_id.push($info_id);
-            logger_guard.info_type.push(LoggingType::Error);
-        }};
-    }
+    /// An async implementation of the basic feature.
+    /// 
+    #[cfg(feature = "async")]
+    pub mod async_log {}
 
-    #[macro_export]
-    macro_rules! parse_log {
-        () => {{
-            let logger_guard = LOGGER.lock().unwrap();
-            let mut last_error: Option<usize> = None;
-            for (idx, &id) in logger_guard.info_id.iter().enumerate() {
-                match logger_guard.info_type[idx] {
-                    LoggingType::Mark =>  {
-                        println!("[MARK]: Mark: {}", logger_guard.info[idx]);
-                    }
-                    LoggingType::Info => {
-                        println!("[INFO]: Info: {}; Info ID: {}",
-                            logger_guard.info[idx], id
-                        );
-                    },
-                    LoggingType::Warning => {
-                        eprintln!("[WARNING]: Warning: {}; Warning ID: {}",
-                            logger_guard.info[idx], id
-                        );
-                    },
-                    LoggingType::Error => {
-                        last_error = Some(idx as usize);
-                        eprintln!("[ERROR]: Error: {}; Error ID: {}",
-                            logger_guard.info[idx], id
-                        );
-                    }
-                }
-            } 
-            if let Some(idx) = last_error {
-                panic!("[ERROR]: Final Error: Error: {}; Error ID: {}",
-                    logger_guard.info[idx], logger_guard.info_id[idx]
-                )
-            }
-        }};
-    }
+    #[cfg(feature = "full_async")]
+    pub mod full_async_log {}
 
+    #[cfg(feature = "no-std")]
+    pub mod no_std_log {}
 }
 
-// #[cfg(feature = "no_std")]
-pub mod logger {}
-
 #[cfg(test)]
-mod tests {
+#[cfg(feature = "basic")]
+mod basic_tests {
     use super::*;
     #[test]
     #[should_panic]
-    fn works() {
-        mark!("Marker".to_string());
-        info!("Info".to_string(), 0);
-        warning!("Warning".to_string(), 0);
-        error!("Error".to_string(), 0);
+    fn basic_logging_works() {
+        mark!("AAAAAAAAAA".to_string(), 0);
+        info!("AAAAAAAAAAAAAA".to_string(), 0);
+        warn!("AAAAAAAAAAAAAAAAAA".to_string(), 0);
+        error!("AAAAAAAAAAAAAAAAAAAA".to_string(), 0);
         parse_log!();
     }
 }
+
+#[cfg(test)]
+#[cfg(feature = "async")]
+mod async_tests {}
+
+#[cfg(test)]
+#[cfg(feature = "full")]
+mod full_tests {}
+
+#[cfg(test)]
+#[cfg(feature = "full_async")]
+mod full_async_tests {}
+
+#[cfg(test)]
+#[cfg(feature = "no-std")]
+mod no_std_tests {}

@@ -3,18 +3,21 @@ name = "uni_log"
 version = "0.1.0"
 edition = "2018"
 authors = ["RustyCrabs100 rusty.crabs100@gmail.com"]
-description = ""
+description = "A logger for everyone's needs!"
 license = "MIT"
-repository = ""
-readme = ""
+repository = "https://github.com/RustyCrabs100/uni_log"
+readme = "README.md"
 keywords = ["logging", "minimal", "error"]
 categories = []
 
 [dependencies]
-
+# Currently No dependencies, may change when async, full, and async-full are implemented
 
 [features]
-default = ["std"]
-no_std = []
-std = []
-# async = []
+default = ["basic"]
+basic = []
+no-std = []
+full = []
+# Async Features planned for later Updates
+async = []
+full_async = []
